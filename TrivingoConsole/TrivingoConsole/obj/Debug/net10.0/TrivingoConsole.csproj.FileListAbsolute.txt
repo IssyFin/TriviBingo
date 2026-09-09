@@ -1,0 +1,14 @@
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\bin\Debug\net10.0\TrivingoConsole.exe
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\bin\Debug\net10.0\TrivingoConsole.deps.json
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\bin\Debug\net10.0\TrivingoConsole.runtimeconfig.json
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\bin\Debug\net10.0\TrivingoConsole.dll
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\bin\Debug\net10.0\TrivingoConsole.pdb
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\TrivingoConsole.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\TrivingoConsole.AssemblyInfoInputs.cache
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\TrivingoConsole.AssemblyInfo.cs
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\TrivingoConsole.csproj.CoreCompileInputs.cache
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\TrivingoConsole.dll
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\refint\TrivingoConsole.dll
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\TrivingoConsole.pdb
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\TrivingoConsole.genruntimeconfig.cache
+C:\Users\Alex\UnityProjects\Trivingo\TrivingoConsole\TrivingoConsole\obj\Debug\net10.0\ref\TrivingoConsole.dll
