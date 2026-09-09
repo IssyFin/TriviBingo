@@ -3,7 +3,6 @@ using UnityEngine;
 using Zenject;
 
 public class GameInstaller : MonoInstaller {
-    [SerializeField] private TextAsset questionsJsonFile;
 
     public override void InstallBindings() {
         Container.Bind<IDataSerializer>().To<NewtonsoftSerializer>().AsSingle();
@@ -12,7 +11,7 @@ public class GameInstaller : MonoInstaller {
 
         Container.Bind<DataLoaderRegistry>().AsSingle();
 
-        Container.Bind<IQuestionProvider>().To<QuestionProvider>().AsSingle();
+        Container.Bind<IQuestionProvider>().To<QuestionProvider>().AsSingle().WithArguments(DataPaths.Questions);
     }
 }
 
