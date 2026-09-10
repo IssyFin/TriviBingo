@@ -17,8 +17,8 @@ public class GameManager : MonoBehaviour
         await dataLoaderRegistry.LoadAllAsync();
 
         QuestionDatabase questionData = dataProvider.Get();
-        System.Collections.Generic.List<QuestionData> questions = questionProvider.GetQuestions(25);
-        Debug.Log(questions.ToString());
+        System.Collections.Generic.List<QuestionData> questions = questionProvider.GetRandomQuestions(25);
+        Debug.Log($"Retrieved {questions.Count} random questions.");
         TestData testData = testDataProvider.Get();
         Debug.Log(testData.ToString());
     }

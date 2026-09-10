@@ -1,5 +1,4 @@
 using Cysharp.Threading.Tasks;
-using System;
 using System.Threading;
 using UnityEngine;
 
@@ -58,7 +57,7 @@ public sealed class AssetDataLoader<T> :
 
     public T Get() {
         if (!IsLoaded)
-            Debug.LogWarning("Attemt to get not initialized data");
+            Debug.LogWarning("Attempt to get not initialized data");
 
         return _asset;
     }

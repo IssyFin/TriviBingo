@@ -1,10 +1,23 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Sirenix.OdinInspector;
+using Sirenix.Serialization;
 
-[CreateAssetMenu(fileName = "questions", menuName = "Game/Questions")]
-public class QuestionDatabase : ScriptableObject {
-    public List<QuestionData> Questions;
+[CreateAssetMenu(fileName = "QuestionDatabase", menuName = "Game/Question Database")]
+public class QuestionDatabase : SerializedScriptableObject {
+    [TableList]
+    [ListDrawerSettings(ShowFoldout = true)]
+    public List<QuestionData> Questions = new();
+
+    [OnInspectorInit]
+    private void EnsureIds() {
+#if UNITY_EDITOR
+        foreach (var q in Questions)
+            if (string.IsNullOrEmpty(q.Id))
+                q.Id = System.Guid.NewGuid().ToString("N");
+#endif
+    }
 }
 
 public enum QuestionTheme {
@@ -18,14 +31,25 @@ public enum QuestionTheme {
 
 [Serializable]
 public class QuestionData {
+    [HorizontalGroup("Header")]
+    [ReadOnly]
+    [HideInInspector]
     public string Id = string.Empty;
+
+    [TextArea(2, 5)]
     public string Text = string.Empty;
+
+    [EnumToggleButtons]
+    public QuestionTheme Theme;
+
+    [ListDrawerSettings(ShowFoldout = true)]
     public List<Answer> Answers = new();
-    public QuestionTheme Theme = new();
 }
 
 [Serializable]
 public class Answer {
+    [TableColumnWidth(300)]
     public string Text = string.Empty;
+
     public bool IsCorrect;
 }

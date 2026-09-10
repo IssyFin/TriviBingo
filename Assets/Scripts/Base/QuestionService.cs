@@ -46,12 +46,12 @@ public class QuestionService : IQuestionService {
 /// сервер, генератор для тестов и т.д.
 /// </summary>
 public interface IQuestionProvider {
-    List<QuestionData> GetQuestions(int count);
+    List<QuestionData> GetRandomQuestions(int count);
 }
 
 
 public class StubQuestionProvider : IQuestionProvider {
-    public List<QuestionData> GetQuestions(int count) {
+    public List<QuestionData> GetRandomQuestions(int count) {
         var result = new List<QuestionData>(count);
         for (int i = 0; i < count; i++) {
             var q = new QuestionData {
@@ -69,41 +69,60 @@ public class StubQuestionProvider : IQuestionProvider {
 }
 
 public sealed class QuestionProvider : IQuestionProvider {
-    private readonly IDataSource<QuestionDatabase> _source;
-    private readonly System.Random _random = new();
+    private readonly IQuestionRepository _repository;
+    private readonly Random _random = new();
 
-    private List<QuestionData> _questions;
-
-    public QuestionProvider(IDataSource<QuestionDatabase> source) {
-        _source = source;
+    public QuestionProvider(IQuestionRepository repository) {
+        _repository = repository;
     }
 
-    public List<QuestionData> GetQuestions(int count) {
-        EnsureLoaded();
-
-        if (_questions.Count == 0)
+    public List<QuestionData> GetRandomQuestions(int count) {
+        if (count <= 0)
             return new List<QuestionData>();
 
-        var actualCount = Math.Min(count, _questions.Count);
+        var questions = _repository.GetAllQuestions();
+        if (questions.Count == 0)
+            return new List<QuestionData>();
 
-        return _questions
-            .OrderBy(_ => _random.Next())
-            .Take(actualCount)
-            .ToList();
-    }
+        var list = questions.ToList();
+        list.FisherShuffle(_random);
 
-    private void EnsureLoaded() {
-        if (_questions != null)
-            return;
+        var actualCount = Math.Min(count, list.Count);
+        if (actualCount < list.Count)
+            list.RemoveRange(actualCount, list.Count - actualCount);
 
-        var data = _source.Get();
-
-        if (data == null || data.Questions == null)
-            throw new InvalidOperationException(
-                "QuestionData data is not available.");
-
-        _questions = data.Questions;
+        return list;
     }
 }
 
+public interface IQuestionRepository {
+    QuestionData? GetQuestionById(string id);
+    IReadOnlyList<QuestionData> GetAllQuestions();
+}
+
+public class QuestionRepository : IQuestionRepository {
+    private readonly IDataSource<QuestionDatabase> _source;
+    public QuestionRepository(IDataSource<QuestionDatabase> source) {
+        _source = source;
+    }
+    public QuestionData? GetQuestionById(string id) {
+        var data = _source.Get();
+        return data?.Questions?.FirstOrDefault(q => q.Id == id);
+    }
+
+    public IReadOnlyList<QuestionData> GetAllQuestions() {
+        var data = _source.Get();
+        return data?.Questions ?? (IReadOnlyList<QuestionData>)Array.Empty<QuestionData>();
+    }
+}
+
+public static class ListExtensions {
+    public static List<T> FisherShuffle<T>(this List<T> list, Random random) {
+        for (int i = list.Count - 1; i > 0; i--) {
+            int j = random.Next(i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+        return list;
+    }
+}
 

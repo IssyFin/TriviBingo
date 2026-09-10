@@ -15,7 +15,7 @@ public class BingoBoard {
         Grid = new Grid(size);
         _tileDataMap = new Dictionary<Tile, BingoTileData>();
 
-        var questions = questionProvider.GetQuestions(size * size);
+        var questions = questionProvider.GetRandomQuestions(size * size);
         int index = 0;
 
         foreach (var tile in Grid.AllTiles()) {

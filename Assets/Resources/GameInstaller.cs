@@ -13,7 +13,9 @@ public class GameInstaller : MonoInstaller {
 
         Container.Bind<DataLoaderRegistry>().AsSingle();
 
+        Container.BindInterfacesAndSelfTo<QuestionRepository>().AsSingle();
         Container.BindInterfacesAndSelfTo<QuestionProvider>().AsSingle();
+
         Container.BindAssetLoader<QuestionDatabase>(DataPaths.Questions);
         Container.BindAssetLoader<TestData>(DataPaths.TestDatas);
     }
