@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 
 public interface IGameService {
     bool TrySelectTile(string address, out BingoTileData tileData);
@@ -63,7 +64,7 @@ public class GameService : IGameService {
             _uiService.DisplayMessage("Correct! You get a ball on this tile.", MessageType.Success);
         } else {
             _board.MarkTileDead(tile);
-            var correctAnswer = _questionService.GetCorrectAnswerText(question);
+            string correctAnswer = question.Answers.Where(a => a.IsCorrect).First().Text;
             _uiService.DisplayMessage(
                 $"Wrong! The correct answer was: {correctAnswer}. Tile is burned.",
                 MessageType.Error);

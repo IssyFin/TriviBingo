@@ -49,7 +49,7 @@ public class GameOrchestratorService {
         }
     }
 
-    private string GetAnswerOptions(Question question) {
+    private string GetAnswerOptions(QuestionData question) {
         var builder = new System.Text.StringBuilder();
         for (int i = 0; i < question.Answers.Count; i++) {
             builder.AppendLine($"{i + 1}. {question.Answers[i]}");

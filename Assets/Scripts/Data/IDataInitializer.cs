@@ -1,7 +1,5 @@
 using Cysharp.Threading.Tasks;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using UnityEngine;
 
@@ -17,76 +15,57 @@ public interface IDataInitializer {
     UniTask ResetAsync(CancellationToken token = default);
 }
 
-public class DataLoaderRegistry {
-    private readonly List<IDataInitializer> _loaders = new();
-    private UniTaskCompletionSource _loadingCompletion;
+public interface IDataSource<T> {
+    T Get();
+}
 
-    public IReadOnlyList<IDataInitializer> Loaders => _loaders;
-    public bool IsAllLoaded => _loaders.All(l => l.IsLoaded);
 
-    public DataLoaderRegistry(IEnumerable<IDataInitializer> loaders) {
-        _loaders.AddRange(loaders);
-        _loaders.Sort(
-            (a, b) => a.LoadPriority.CompareTo(b.LoadPriority)
-        );
+/// <summary>
+/// Универсальный провайдер. Загружает ассет, распаковывает данные и хранит их в памяти.
+/// </summary>
+public sealed class AssetDataLoader<T> :
+    IDataSource<T>,
+    IDataInitializer
+    where T : UnityEngine.Object {
+    private readonly string _assetPath;
+
+    private T _asset;
+
+    public string LoaderId => $"Asset_{typeof(T).Name}";
+    public int LoadPriority { get; }
+    public bool IsLoaded => _asset != null;
+
+    public AssetDataLoader(string assetPath, int priority = 10) {
+        _assetPath = assetPath;
+        LoadPriority = priority;
     }
 
-    public void RegisterLoader(IDataInitializer loader) {
-        if (_loaders.Contains(loader))
+    public async UniTask InitializeAsync(CancellationToken token = default) {
+        if (IsLoaded)
             return;
 
-        _loaders.Add(loader);
-        // Сортируем по приоритету
-        _loaders.Sort((a, b) => a.LoadPriority.CompareTo(b.LoadPriority));
+        var request = Resources.LoadAsync<T>(_assetPath);
 
-        Debug.Log($"[DataLoaderRegistry] Registered: {loader.LoaderId} (Priority: {loader.LoadPriority})");
-    }
+        await request.ToUniTask(cancellationToken: token);
 
-    public void RegisterLoaders(params IDataInitializer[] loaders) {
-        foreach (var loader in loaders)
-            RegisterLoader(loader);
-    }
-
-    public async UniTask LoadAllAsync(CancellationToken token = default) {
-        if (_loadingCompletion != null) {
-            await _loadingCompletion.Task;
+        if (request.asset == null) {
+            Debug.LogWarning($"LoaderId: {LoaderId} Can't load by AssetPath: Resources/{_assetPath}");
             return;
         }
 
-        if (IsAllLoaded)
-            return;
-
-        _loadingCompletion = new UniTaskCompletionSource();
-
-        try {
-            var groups = _loaders
-                .GroupBy(l => l.LoadPriority)
-                .OrderBy(g => g.Key);
-
-            foreach (var group in groups) {
-                var tasks = group.Select(l => l.InitializeAsync(token));
-                await UniTask.WhenAll(tasks);
-            }
-
-            _loadingCompletion.TrySetResult();
-        } catch (Exception ex) {
-            _loadingCompletion.TrySetException(ex);
-            throw;
-        } finally {
-            _loadingCompletion = null;
-        }
+        _asset = (T)request.asset;
     }
 
-    public T GetLoader<T>() where T : IDataInitializer {
-        return _loaders.OfType<T>().FirstOrDefault();
+    public T Get() {
+        if (!IsLoaded)
+            Debug.LogWarning("Attemt to get not initialized data");
+
+        return _asset;
     }
 
-    public IDataInitializer GetLoader(string loaderId) {
-        return _loaders.FirstOrDefault(l => l.LoaderId == loaderId);
-    }
+    public UniTask ResetAsync(CancellationToken token = default) {
+        _asset = null;
 
-    public async UniTask ResetAllAsync(CancellationToken token = default) {
-        var tasks = _loaders.Select(l => l.ResetAsync(token));
-        await UniTask.WhenAll(tasks);
+        return UniTask.CompletedTask;
     }
 }

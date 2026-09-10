@@ -13,13 +13,25 @@ public class GameInstaller : MonoInstaller {
 
         Container.Bind<DataLoaderRegistry>().AsSingle();
 
-        //Container.Bind<IQuestionProvider>().To<QuestionProvider>().AsSingle().WithArguments(DataPaths.Questions);
         Container.BindInterfacesAndSelfTo<QuestionProvider>().AsSingle();
+        Container.BindAssetLoader<QuestionDatabase>(DataPaths.Questions);
+        Container.BindAssetLoader<TestData>(DataPaths.TestDatas);
+    }
+}
 
-        Container.BindInterfacesAndSelfTo<AssetDataLoader<QuestionData>>().AsSingle().WithArguments(DataPaths.Questions);
+public static class DataLoaderBindingExtensions {
+    public static void BindAssetLoader<T>(
+        this DiContainer container,
+        string assetPath,
+        int priority = 10)
+        where T : UnityEngine.Object {
+        container.BindInterfacesAndSelfTo<AssetDataLoader<T>>()
+            .AsSingle()
+            .WithArguments(assetPath, priority);
     }
 }
 
 public static class DataPaths {
     public const string Questions = "questions";
+    public const string TestDatas = "TestData";
 }

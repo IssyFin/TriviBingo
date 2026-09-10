@@ -9,7 +9,7 @@ public enum MessageType {
 
 public interface IUIService {
     void DisplayBoard(string boardRepresentation);
-    void DisplayQuestion(Question question, string answerOptions);
+    void DisplayQuestion(QuestionData question, string answerOptions);
     void DisplayMessage(string message, MessageType type = MessageType.Info);
     string GetUserInput(string prompt);
 }
@@ -19,7 +19,7 @@ public class ConsoleUIService : IUIService {
         Console.WriteLine(boardRepresentation);
     }
 
-    public void DisplayQuestion(Question question, string answerOptions) {
+    public void DisplayQuestion(QuestionData question, string answerOptions) {
         Console.WriteLine($"\n--- QUESTION ---");
         Console.WriteLine(question.Text);
         Console.WriteLine(answerOptions);

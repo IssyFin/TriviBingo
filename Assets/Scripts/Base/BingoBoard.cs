@@ -74,10 +74,10 @@ public enum TileState {
 /// </summary>
 public class BingoTileData {
     public Tile tile;
-    public Question Question { get; }
+    public QuestionData Question { get; }
     public TileState State { get; set; } = TileState.Unrevealed;
 
-    public BingoTileData(Question question, Tile tile) {
+    public BingoTileData(QuestionData question, Tile tile) {
         Question = question ?? throw new ArgumentNullException(nameof(question));
         this.tile = tile ?? throw new ArgumentNullException(nameof(tile));
     }
