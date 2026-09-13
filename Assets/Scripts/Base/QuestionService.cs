@@ -12,10 +12,10 @@ public interface IQuestionService {
     bool ValidateAnswer(QuestionData question, string userAnswer);
 }
 public class QuestionService : IQuestionService {
-    private readonly BingoBoard _board;
+    private readonly QuizBoard _board;
     private readonly IAnswerValidator _defaultValidator;
 
-    public QuestionService(BingoBoard board) {
+    public QuestionService(QuizBoard board) {
         _board = board ?? throw new ArgumentNullException(nameof(board));
         _defaultValidator = new CompositeAnswerValidator(
                 new IndexBasedAnswerValidator(),
@@ -98,6 +98,7 @@ public sealed class QuestionProvider : IQuestionProvider {
 public interface IQuestionRepository {
     QuestionData? GetQuestionById(string id);
     IReadOnlyList<QuestionData> GetAllQuestions();
+    IReadOnlyList<QuestionData> GetQuestionsByCategory(QuestionCategory category);
 }
 
 public class QuestionRepository : IQuestionRepository {
@@ -113,6 +114,11 @@ public class QuestionRepository : IQuestionRepository {
     public IReadOnlyList<QuestionData> GetAllQuestions() {
         var data = _source.Get();
         return data?.Questions ?? (IReadOnlyList<QuestionData>)Array.Empty<QuestionData>();
+    }
+
+    public IReadOnlyList<QuestionData> GetQuestionsByCategory(QuestionCategory category) {
+        var data = _source.Get();
+        return data?.Questions?.Where(q => q.Category == category).ToList() ?? (IReadOnlyList<QuestionData>)Array.Empty<QuestionData>();
     }
 }
 

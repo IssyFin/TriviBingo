@@ -20,7 +20,7 @@ public class QuestionDatabase : SerializedScriptableObject {
     }
 }
 
-public enum QuestionTheme {
+public enum QuestionCategory {
     Any,
     History,
     Science,
@@ -40,7 +40,7 @@ public class QuestionData {
     public string Text = string.Empty;
 
     [EnumToggleButtons]
-    public QuestionTheme Theme;
+    public QuestionCategory Category;
 
     [ListDrawerSettings(ShowFoldout = true)]
     public List<Answer> Answers = new();

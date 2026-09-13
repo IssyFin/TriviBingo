@@ -74,4 +74,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 416343757088faa4f9bdffd1dd137e5c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameInstaller
-  questionsJsonFile: {fileID: 0}
+  categoryColorConfig: {fileID: 11400000, guid: b79368e6d402e6b49bf9bc6b23ff6513, type: 2}
+  envelopeViewPrefab: {fileID: 18684941742043122, guid: abc3056b59f5a244eb9b823f41d80691, type: 3}
+  boardInteractionService: {fileID: 1362756530326052563, guid: 9efc42ccc501101448720a73d7e20774, type: 3}
+  objectDetector: {fileID: 530222946400852783, guid: e687ba8c66eb9de4c8252ef096ff0517, type: 3}
+  boardView: {fileID: 2669541256015137347, guid: eacac8da4c7eb7c41810de6c59cf05bc, type: 3}

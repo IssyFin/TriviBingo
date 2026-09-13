@@ -1,9 +1,15 @@
 using DataManagement;
+using UnityEditor.SearchService;
 using UnityEngine;
 using Zenject;
 
 public class GameInstaller : MonoInstaller {
 
+    public CategoryColorConfig categoryColorConfig;
+    public QuestionEnvelopeView envelopeViewPrefab;
+    public BoardInteractionService boardInteractionService;
+    public CursorObjectDetector objectDetector;
+    public BoardView boardView;
     public override void InstallBindings() {
         Container.Bind<GameManager>().FromNewComponentOnNewGameObject().AsSingle();
 
@@ -14,10 +20,28 @@ public class GameInstaller : MonoInstaller {
         Container.Bind<DataLoaderRegistry>().AsSingle();
 
         Container.BindInterfacesAndSelfTo<QuestionRepository>().AsSingle();
-        Container.BindInterfacesAndSelfTo<QuestionProvider>().AsSingle();
+        Container.BindInterfacesAndSelfTo<StubQuestionProvider>().AsSingle();
 
         Container.BindAssetLoader<QuestionDatabase>(DataPaths.Questions);
         Container.BindAssetLoader<TestData>(DataPaths.TestDatas);
+
+        Container.BindInterfacesAndSelfTo<QuizBoardService>().AsSingle();
+
+        Container.Bind<BoardView>().FromComponentInNewPrefab(boardView).AsSingle();
+        Container.Bind<IEnvelopeFactory>().To<EnvelopeFactory>().AsSingle().WithArguments(envelopeViewPrefab);
+        Container.Bind<ICategoryColorProvider>().To<CategoryColorProvider>().AsSingle().WithArguments(categoryColorConfig);
+        BindInputSystem();
+        BindInteractionSystem();
+    }
+
+    private void BindInteractionSystem() {
+        Container.BindInterfacesAndSelfTo<BoardInteractionService>().FromComponentInNewPrefab(boardInteractionService).AsSingle();
+        Container.BindInterfacesAndSelfTo<IObjectDetector>().FromComponentInNewPrefab(objectDetector).AsSingle();
+    }
+
+    private void BindInputSystem() {
+        Container.BindInterfacesAndSelfTo<InputService>().AsSingle();
+        Container.BindInterfacesAndSelfTo<UIInputReader>().AsSingle();
     }
 }
 
