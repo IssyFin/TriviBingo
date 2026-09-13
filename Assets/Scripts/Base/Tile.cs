@@ -27,31 +27,42 @@ public class Line {
     }
 }
 
-/// <summary>
-/// Чистая сетка. Занимается только геометрией, парсингом адресов и выдачей линий.
-/// </summary>
 public class Grid {
     public int Size { get; }
-    private readonly Tile[,] _tiles;
+    public IReadOnlyList<IReadOnlyList<Tile>> Rows => _tileRows;
+
+    public int Count {
+        get {
+            int total = 0;
+            foreach (var row in Rows) {
+                total += row.Count;
+            }
+            return total;
+        }
+    }
+
+    private readonly List<List<Tile>> _tileRows;
 
     public Grid(int size) {
         if (size < 2)
             throw new ArgumentException("Grid size must be at least 2.", nameof(size));
 
         Size = size;
-        _tiles = new Tile[size, size];
+        _tileRows = new List<List<Tile>>(size);
 
         for (int row = 0; row < size; row++) {
+            var rowTiles = new List<Tile>(size);
             for (int col = 0; col < size; col++) {
-                _tiles[row, col] = new Tile(row, col);
+                rowTiles.Add(new Tile(row, col));
             }
+            _tileRows.Add(rowTiles);
         }
     }
 
     public Tile GetTile(int row, int col) {
         if (row < 0 || row >= Size || col < 0 || col >= Size)
             throw new ArgumentOutOfRangeException($"({row},{col}) is outside a {Size}x{Size} grid.");
-        return _tiles[row, col];
+        return _tileRows[row][col];
     }
 
     public Tile GetTileByAddress(string address) {
@@ -71,33 +82,33 @@ public class Grid {
         if (col < 0 || col >= Size || row < 0 || row >= Size)
             throw new ArgumentException($"Address '{address}' is outside a {Size}x{Size} grid.");
 
-        return _tiles[row, col];
+        return _tileRows[row][col];
     }
 
     public IEnumerable<Tile> AllTiles() {
         for (int row = 0; row < Size; row++)
             for (int col = 0; col < Size; col++)
-                yield return _tiles[row, col];
+                yield return _tileRows[row][col];
     }
 
     public IEnumerable<Line> AllLines() {
         for (int row = 0; row < Size; row++) {
             var rowTiles = new List<Tile>(Size);
-            for (int col = 0; col < Size; col++) rowTiles.Add(_tiles[row, col]);
+            for (int col = 0; col < Size; col++) rowTiles.Add(_tileRows[row][col]);
             yield return new Line($"Row {row + 1}", rowTiles);
         }
 
         for (int col = 0; col < Size; col++) {
             var colTiles = new List<Tile>(Size);
-            for (int row = 0; row < Size; row++) colTiles.Add(_tiles[row, col]);
+            for (int row = 0; row < Size; row++) colTiles.Add(_tileRows[row][col]);
             yield return new Line($"Column {(char)('A' + col)}", colTiles);
         }
 
         var diagMain = new List<Tile>(Size);
         var diagAnti = new List<Tile>(Size);
         for (int i = 0; i < Size; i++) {
-            diagMain.Add(_tiles[i, i]);
-            diagAnti.Add(_tiles[i, Size - 1 - i]);
+            diagMain.Add(_tileRows[i][i]);
+            diagAnti.Add(_tileRows[i][Size - 1 - i]);
         }
         yield return new Line("Diagonal \u2199\u2197 (main)", diagMain);
         yield return new Line("Diagonal \u2198\u2196 (anti)", diagAnti);
