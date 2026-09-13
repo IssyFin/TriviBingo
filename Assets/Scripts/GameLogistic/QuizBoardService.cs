@@ -47,7 +47,6 @@ public class QuizBoardService : IDisposable, IInitializable {
 
         foreach (var tileView in tiles) {
             HandleEnvelope(tileView);
-            tileView.Clicked += OnTileClicked;
         }
     }
 
@@ -67,10 +66,6 @@ public class QuizBoardService : IDisposable, IInitializable {
     private TileData DataFor(TileView view) {
         var tile = _board.Grid.GetTile(view.Row, view.Col);
         return _board.GetData(tile);
-    }
-
-    private void OnDestroy() {
-        foreach (var t in boardView.Tiles) t.Clicked -= OnTileClicked;
     }
 
     
