@@ -17,9 +17,9 @@ public interface IGameStateService {
 }
 
 public class GameStateService : IGameStateService {
-    private readonly BingoBoard _board;
+    private readonly QuizBoard _board;
 
-    public GameStateService(BingoBoard board) {
+    public GameStateService(QuizBoard board) {
         _board = board ?? throw new ArgumentNullException(nameof(board));
     }
 
@@ -32,7 +32,7 @@ public class GameStateService : IGameStateService {
     }
 
     public bool IsTileAvailable(Tile tile) {
-        return _board.GetData(tile).State == TileState.Unrevealed;
+        return _board.GetData(tile).State == TileState.Idle;
     }
 
     public GameStatus GetStatus() {
@@ -45,7 +45,7 @@ public class GameStateService : IGameStateService {
 
     public int GetAvailableTilesCount() {
         return _board.Grid.AllTiles()
-                         .Count(tile => _board.GetData(tile).State == TileState.Unrevealed);
+                         .Count(tile => _board.GetData(tile).State == TileState.Idle);
     }
 
     public int GetTotalTilesCount() {

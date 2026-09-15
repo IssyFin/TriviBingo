@@ -3,9 +3,9 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Linq;
 using UnityEngine;
 
 namespace DataManagement {
@@ -22,10 +22,10 @@ namespace DataManagement {
     /// Сериализатор на Newtonsoft.Json. В отличие от JsonUtility корректно
     /// работает с Dictionary, вложенными коллекциями и т.д.
     /// </summary>
-    public class NewtonsoftSerializer : IDataSerializer {
+    public class NewtonsoftJsonSerializer : IDataSerializer {
         private readonly JsonSerializerSettings _settings;
 
-        public NewtonsoftSerializer() {
+        public NewtonsoftJsonSerializer() {
             _settings = new JsonSerializerSettings {
                 Formatting = Formatting.Indented,
                 // Auto включает сохранение типов только при необходимости (для полиморфизма)
@@ -200,10 +200,12 @@ namespace DataManagement {
         }
     }
 
-    /// <summary>
-    /// Фасад для работы с данными. Объединяет логику сериализации и файлового хранилища.
-    /// </summary>
-    public class DataStore {
+    public interface IDataStore {
+        UniTask SaveAsync<T>(string path, T data, CancellationToken token = default);
+        UniTask<T> LoadAsync<T>(string path, CancellationToken token = default);
+    }
+
+    public class DataStore : IDataStore {
         private readonly IDataSerializer _serializer;
         private readonly IFileStorage _storage;
 
@@ -237,4 +239,3 @@ namespace DataManagement {
         }
     }
 }
-

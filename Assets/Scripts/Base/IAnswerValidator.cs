@@ -9,15 +9,9 @@ namespace BingoTrivia.Validation {
     /// Позволяет реализовать разные стратегии проверки.
     /// </summary>
     public interface IAnswerValidator {
-        bool IsCorrect(Question question, string userAnswer);
-        string GetCorrectAnswer(Question question);
-        string FormatAnswerOptions(Question question);
+        bool IsCorrect(QuestionData question, string userAnswer);
     }
 
-    /// <summary>
-    /// Валидатор, который пробует применить несколько стратегий по очереди.
-    /// Возвращает true, если хотя бы одна стратегия посчитала ответ верным.
-    /// </summary
     public class CompositeAnswerValidator : IAnswerValidator {
         private readonly List<IAnswerValidator> _validators;
 
@@ -29,7 +23,7 @@ namespace BingoTrivia.Validation {
             _validators = validators?.ToList() ?? new List<IAnswerValidator>();
         }
 
-        public bool IsCorrect(Question question, string userAnswer) {
+        public bool IsCorrect(QuestionData question, string userAnswer) {
             if (string.IsNullOrWhiteSpace(userAnswer))
                 return false;
 
@@ -42,127 +36,55 @@ namespace BingoTrivia.Validation {
 
             return false;
         }
-
-        public string GetCorrectAnswer(Question question) {
-            // Берем правильный ответ у первого валидатора в цепочке
-            var firstValidator = _validators.FirstOrDefault();
-            return firstValidator != null
-                ? firstValidator.GetCorrectAnswer(question)
-                : "Unknown";
-        }
-
-        public string FormatAnswerOptions(Question question) {
-            var firstValidator = _validators.FirstOrDefault();
-            return firstValidator != null
-                ? firstValidator.FormatAnswerOptions(question)
-                : string.Empty;
-        }
     }
 
-    /// <summary>
-    /// Проверяет ответы по индексу (номер варианта ответа).
-    /// </summary>
     public class IndexBasedAnswerValidator : IAnswerValidator {
-        public bool IsCorrect(Question question, string userAnswer) {
-            if (int.TryParse(userAnswer.Trim(), out int displayIndex)) {
-                // В UI нумерация с 1, а в массиве — с 0
-                int zeroBasedIndex = displayIndex - 1;
-                return zeroBasedIndex == question.CorrectAnswerIndex;
-            }
-            return false;
-        }
+        public bool IsCorrect(QuestionData question, string userAnswer) {
+            if (!int.TryParse(userAnswer.Trim(), out int displayIndex))
+                return false;
 
-        public string GetCorrectAnswer(Question question) {
-            if (question.CorrectAnswerIndex >= 0 && question.CorrectAnswerIndex < question.Answers.Count) {
-                return question.Answers[question.CorrectAnswerIndex];
-            }
-            return "Unknown";
-        }
+            int index = displayIndex - 1;
 
-        public string FormatAnswerOptions(Question question) {
-            var builder = new System.Text.StringBuilder();
-            for (int i = 0; i < question.Answers.Count; i++) {
-                builder.AppendLine($"{i + 1}. {question.Answers[i]}");
-            }
-            return builder.ToString();
+            return index >= 0 &&
+                   index < question.Answers.Count &&
+                   question.Answers[index].IsCorrect;
         }
     }
 
     public class TextMatchAnswerValidator : IAnswerValidator {
         private readonly StringComparison _comparisonType;
 
-        public TextMatchAnswerValidator(StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) {
+        public TextMatchAnswerValidator(
+            StringComparison comparisonType = StringComparison.OrdinalIgnoreCase) {
             _comparisonType = comparisonType;
         }
 
-        public bool IsCorrect(Question question, string userAnswer) {
+        public bool IsCorrect(QuestionData question, string userAnswer) {
             if (string.IsNullOrWhiteSpace(userAnswer))
                 return false;
 
-            var correctAnswer = GetCorrectAnswer(question);
             string cleanInput = CleanInput(userAnswer);
 
-            return string.Equals(cleanInput, correctAnswer.Trim(), _comparisonType);
-        }
-
-        public string GetCorrectAnswer(Question question) {
-            if (question.CorrectAnswerIndex >= 0 && question.CorrectAnswerIndex < question.Answers.Count) {
-                return question.Answers[question.CorrectAnswerIndex];
-            }
-            return string.Empty;
-        }
-
-        public string FormatAnswerOptions(Question question) {
-            var builder = new System.Text.StringBuilder();
-            for (int i = 0; i < question.Answers.Count; i++) {
-                builder.AppendLine($"{question.Answers[i]}");
-            }
-            return builder.ToString();
+            return question.Answers
+                .Where(a => a.IsCorrect)
+                .Any(a => string.Equals(
+                    a.Text.Trim(),
+                    cleanInput,
+                    _comparisonType));
         }
 
         private string CleanInput(string input) {
             input = input.Trim();
-            // Если игрок ввел "1. Yes" или "1) Yes", отсекаем префикс с цифрой
-            int dotIndex = input.IndexOfAny(new[] { '.', ')' });
-            if (dotIndex > 0 && dotIndex < 3 && int.TryParse(input.Substring(0, dotIndex), out _)) {
-                return input.Substring(dotIndex + 1).Trim();
+
+            int index = input.IndexOfAny(new[] { '.', ')' });
+
+            if (index > 0 &&
+                index < 3 &&
+                int.TryParse(input[..index], out _)) {
+                return input[(index + 1)..].Trim();
             }
+
             return input;
-        }
-    }
-
-    /// <summary>
-    /// Поддерживает вопросы с несколькими правильными ответами.
-    /// </summary>
-    public class MultipleCorrectAnswersValidator : IAnswerValidator {
-        public bool IsCorrect(Question question, string userAnswer) {
-            if (string.IsNullOrWhiteSpace(userAnswer))
-                return false;
-
-            // Поддерживаем как одиночные, так и множественные ответы через запятую
-            var userAnswers = userAnswer.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                                       .Select(a => a.Trim())
-                                       .ToList();
-
-            if (question.CorrectAnswers == null || question.CorrectAnswers.Count == 0)
-                return false;
-
-            if (userAnswers.Count != question.CorrectAnswers.Count)
-                return false;
-
-            return !userAnswers.Except(question.CorrectAnswers).Any();
-        }
-
-        public string GetCorrectAnswer(Question question) {
-            return string.Join(", ", question.CorrectAnswers ?? new List<string>());
-        }
-
-        public string FormatAnswerOptions(Question question) {
-            var builder = new System.Text.StringBuilder();
-            for (int i = 0; i < question.Answers.Count; i++) {
-                builder.AppendLine($"{i + 1}. {question.Answers[i]}");
-            }
-            return builder.ToString();
         }
     }
 }
