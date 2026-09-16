@@ -1,52 +1,24 @@
 using UnityEngine;
 
-public struct DetectionResult {
-    public GameObject GameObject;
-    public Collider Collider;
-    public Vector3 HitPoint;
-    public Vector3 HitNormal;
+using UnityEngine;
 
-    public bool IsValid => GameObject != null;
-}
-
-public class StaticCameraDetector : MonoBehaviour, IObjectDetector {
-    [Header("Detection Settings")]
-    [SerializeField] private LayerMask targetLayer;
-    [SerializeField] private float detectionDistance = 3f;
+public class StaticCameraDetector : BaseObjectDetector {
+    [Header("Static Detector Settings")]
     [SerializeField] private float raycastRadius = 0.2f;
 
-    private Camera _mainCamera;
+    private Transform OriginTransform => MainCamera != null ? MainCamera.transform : transform;
 
-    private Transform OriginTransform {
-        get {
-            if (_mainCamera == null) _mainCamera = Camera.main;
-            return _mainCamera != null ? _mainCamera.transform : transform;
-        }
-    }
-
-    public bool TryDetectObject(out DetectionResult result) {
+    public override bool TryDetectObject(out DetectionResult result) {
         Transform origin = OriginTransform;
 
-        if (Physics.SphereCast(
-            origin.position,
-            raycastRadius,
-            origin.forward,
-            out RaycastHit hit,
-            detectionDistance,
-            targetLayer)) {
+        if (Physics.SphereCast(origin.position, raycastRadius, origin.forward, out RaycastHit hit, detectionDistance, targetLayer)) {
 
-            Vector3 hitPoint = hit.point;
+            // Защита от старта каста внутри коллайдера
+            Vector3 hitPoint = hit.point == Vector3.zero
+                ? hit.collider.ClosestPoint(origin.position)
+                : hit.point;
 
-            if (hitPoint == Vector3.zero) {
-                hitPoint = hit.collider.ClosestPoint(origin.position);
-            }
-
-            result = new DetectionResult {
-                GameObject = hit.collider.gameObject,
-                Collider = hit.collider,
-                HitPoint = hitPoint,
-                HitNormal = hit.normal
-            };
+            result = new DetectionResult(hit.collider.gameObject, hit.collider, hitPoint, hit.normal);
             return true;
         }
 
@@ -54,17 +26,14 @@ public class StaticCameraDetector : MonoBehaviour, IObjectDetector {
         return false;
     }
 
-    public GameObject DetectObject() {
-        return TryDetectObject(out DetectionResult result) ? result.GameObject : null;
-    }
-
     private void OnDrawGizmosSelected() {
         Transform origin = OriginTransform;
+        if (origin == null) return;
 
         Gizmos.color = Color.green;
         Gizmos.DrawRay(origin.position, origin.forward * detectionDistance);
 
-        Gizmos.color = Color.green * 0.5f;
+        Gizmos.color = new Color(0, 1, 0, 0.5f);
         Vector3 endPoint = origin.position + origin.forward * detectionDistance;
         Gizmos.DrawWireSphere(origin.position, raycastRadius);
         Gizmos.DrawWireSphere(endPoint, raycastRadius);

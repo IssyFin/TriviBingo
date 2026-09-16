@@ -10,9 +10,27 @@ public class GameInstaller : MonoInstaller {
     public BoardInteractionService boardInteractionService;
     public CursorObjectDetector objectDetector;
     public BoardView boardView;
-    public override void InstallBindings() {
-        Container.Bind<GameManager>().FromNewComponentOnNewGameObject().AsSingle();
 
+    [Header ("UI")]
+    public UIRoot _uiRootPrefab;
+    [SerializeField] private UIWindowsConfig _windowsConfig;
+    [SerializeField] private UIHudConfig _hudConfig;
+    public override void InstallBindings() {
+        BindDataLoading();
+
+        Container.Bind<GameManager>().FromNewComponentOnNewGameObject().AsSingle();
+        Container.BindInterfacesAndSelfTo<QuizInteractionHandler>().AsSingle();
+        Container.BindInterfacesAndSelfTo<QuizBoardController>().AsSingle().WithArguments(boardView);
+
+        Container.Bind<IEnvelopeFactory>().To<EnvelopeFactory>().AsSingle().WithArguments(envelopeViewPrefab);
+        Container.Bind<ICategoryColorProvider>().To<CategoryColorProvider>().AsSingle().WithArguments(categoryColorConfig);
+
+        BindInputSystem();
+        BindInteractionSystem();
+        BindUI();
+    }
+
+    private void BindDataLoading() {
         Container.Bind<IDataSerializer>().To<NewtonsoftJsonSerializer>().AsSingle();
         Container.Bind<IFileStorage>().To<FileStorage>().AsSingle().WithArguments(Application.persistentDataPath);
         Container.Bind<DataStore>().AsSingle();
@@ -24,14 +42,22 @@ public class GameInstaller : MonoInstaller {
 
         Container.BindAssetLoader<QuestionDatabase>(DataPaths.Questions);
         Container.BindAssetLoader<TestData>(DataPaths.TestDatas);
+    }
 
-        Container.BindInterfacesAndSelfTo<QuizBoardService>().AsSingle();
+    private void BindUI() {
+        // Core
 
-        Container.Bind<BoardView>().FromComponentInNewPrefab(boardView).AsSingle();
-        Container.Bind<IEnvelopeFactory>().To<EnvelopeFactory>().AsSingle().WithArguments(envelopeViewPrefab);
-        Container.Bind<ICategoryColorProvider>().To<CategoryColorProvider>().AsSingle().WithArguments(categoryColorConfig);
-        BindInputSystem();
-        BindInteractionSystem();
+        Container.Bind<UIRoot>()
+            .FromComponentInNewPrefab(_uiRootPrefab)
+            .AsSingle();
+
+        Container.Bind<IWindowService>().To<UIWindowService>().AsSingle().WithArguments(_windowsConfig);
+        Container.Bind<IHudService>().To<HudService>().AsSingle().WithArguments(_hudConfig);
+
+
+        //Add
+        Container.Bind<IQuestionUIService>().To<QuestionUIService>().AsSingle();
+
     }
 
     private void BindInteractionSystem() {
@@ -42,6 +68,7 @@ public class GameInstaller : MonoInstaller {
     private void BindInputSystem() {
         Container.BindInterfacesAndSelfTo<InputService>().AsSingle();
         Container.BindInterfacesAndSelfTo<UIInputReader>().AsSingle();
+        
     }
 }
 

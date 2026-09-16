@@ -79,3 +79,6 @@ MonoBehaviour:
   boardInteractionService: {fileID: 1362756530326052563, guid: 9efc42ccc501101448720a73d7e20774, type: 3}
   objectDetector: {fileID: 530222946400852783, guid: e687ba8c66eb9de4c8252ef096ff0517, type: 3}
   boardView: {fileID: 2669541256015137347, guid: eacac8da4c7eb7c41810de6c59cf05bc, type: 3}
+  _uiRootPrefab: {fileID: 4662972768578312152, guid: c6517c0387cb4a649a80692aa57461bb, type: 3}
+  _windowsConfig: {fileID: 11400000, guid: d4619666f92d6c04996a334d7165ad37, type: 2}
+  _hudConfig: {fileID: 11400000, guid: 1d8b5b2542de0a64188d851f4d2d2ea2, type: 2}
