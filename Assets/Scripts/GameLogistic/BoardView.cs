@@ -15,8 +15,8 @@ public class BoardView : MonoBehaviour {
     [SerializeField] private BoardViewConfig config;
 
     private readonly List<TileView> _tiles = new();
+    private readonly List<Transform> _rowParents = new();
     public IReadOnlyList<TileView> Tiles => _tiles;
-
 
     public IReadOnlyList<TileView> GenerateBoard(int size) {
         Clear();
@@ -25,11 +25,20 @@ public class BoardView : MonoBehaviour {
         float stepZ = config.tileHeight + config.tileSpacing;
 
         for (int row = 0; row < size; row++) {
-            for (int col = 0; col < size; col++) {
-                Vector3 position = new Vector3(col * stepX, 0f, row * stepZ);
+            // родитель ряда смещён по Z на row * stepZ
+            var rowParent = new GameObject($"Row [{row}]").transform;
+            rowParent.SetParent(transform, worldPositionStays: false);
+            rowParent.localPosition = new Vector3(0f, 0f, row * stepZ);
+            _rowParents.Add(rowParent);
 
-                var tileView = Instantiate(tileViewPrefab, position, Quaternion.identity, transform);
-                tileView.gameObject.name = $"Tile [Row : {row}, Column :{col}]";
+            for (int col = 0; col < size; col++) {
+                // локальная позиция внутри ряда: только по X
+                Vector3 localPos = new Vector3(col * stepX, 0f, 0f);
+
+                var tileView = Instantiate(tileViewPrefab, rowParent);
+                tileView.transform.localPosition = localPos;
+                tileView.transform.localRotation = Quaternion.identity;
+                tileView.gameObject.name = $"Tile [{row},{col}]";
                 tileView.Initialize(row, col);
                 _tiles.Add(tileView);
             }
@@ -43,16 +52,14 @@ public class BoardView : MonoBehaviour {
     }
 
     public void Clear() {
-        foreach (var t in _tiles) {
-            if (t != null && t.gameObject != null) {
-                Destroy(t.gameObject);
-            }
-            
+        // Проще снести всех детей transform'а — это разом уберёт и тайлы, и родителей
+        for (int i = transform.childCount - 1; i >= 0; i--) {
+            Destroy(transform.GetChild(i).gameObject);
         }
         _tiles.Clear();
+        _rowParents.Clear();
     }
 }
-
 public interface IEnvelopeFactory {
     QuestionEnvelopeView CreateEnvelope(QuestionData question);
     void ReleaseEnvelope(QuestionEnvelopeView view);
