@@ -38,9 +38,9 @@ public class TileView : MonoBehaviour, IInteractable {
         if (_envelope != null) _envelope.gameObject.SetActive(false);
     }
 
-    public void OnSelect() {
+    public void OnSelect(bool isSelected) {
         Debug.Log("Tile selected");
-        Clicked?.Invoke(this);
+        if (isSelected) Clicked?.Invoke(this);
     }
 
     public void OnHoverEnter() {

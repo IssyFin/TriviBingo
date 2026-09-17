@@ -13,7 +13,7 @@ public interface IUIService<TElement> where TElement : class, IUIElement {
     void Destroy<TConcrete>() where TConcrete : Component, TElement;
 }
 
-public interface IWindowService {
+public interface IWindowService : IUIService<IWindow> {
     T OpenWindow<T>() where T : Component, IWindow;
     void CloseTopWindow();
 }
@@ -81,7 +81,6 @@ public abstract class UIBaseService<TElement> : IUIService<TElement> where TElem
 }
 
 public class UIWindowService : UIBaseService<IWindow>, IWindowService, IInitializable, IDisposable {
-    private readonly InputService _inputService;
     private readonly UIInputReader _uiInputReader;
     private readonly List<IWindow> _openWindows = new();
 
@@ -92,7 +91,6 @@ public class UIWindowService : UIBaseService<IWindow>, IWindowService, IInitiali
         UIWindowsConfig config,
         UIRoot uiRoot)
         : base(container, uiRoot, config.BuildMap()) {
-        _inputService = input;
         _uiInputReader = uiInputReader;
     }
 
@@ -113,7 +111,6 @@ public class UIWindowService : UIBaseService<IWindow>, IWindowService, IInitiali
         }
 
         _openWindows.Add(window);
-        _inputService.SwitchToUI();
 
         return window;
     }
@@ -130,11 +127,6 @@ public class UIWindowService : UIBaseService<IWindow>, IWindowService, IInitiali
 
         // Безопасно удаляем окно из любой позиции списка
         _openWindows.Remove(window);
-
-        // Переключаем инпут обратно на геймплей только если открытых окон вообще не осталось
-        if (_openWindows.Count == 0) {
-            _inputService.SwitchToGameplay();
-        }
     }
 }
 

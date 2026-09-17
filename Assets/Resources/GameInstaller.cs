@@ -38,7 +38,7 @@ public class GameInstaller : MonoInstaller {
         Container.Bind<DataLoaderRegistry>().AsSingle();
 
         Container.BindInterfacesAndSelfTo<QuestionRepository>().AsSingle();
-        Container.BindInterfacesAndSelfTo<StubQuestionProvider>().AsSingle();
+        Container.BindInterfacesAndSelfTo<QuestionProvider>().AsSingle();
 
         Container.BindAssetLoader<QuestionDatabase>(DataPaths.Questions);
         Container.BindAssetLoader<TestData>(DataPaths.TestDatas);
@@ -56,7 +56,7 @@ public class GameInstaller : MonoInstaller {
 
 
         //Add
-        Container.Bind<IQuestionUIService>().To<QuestionUIService>().AsSingle();
+        Container.Bind<IQuizService>().To<QuizService>().AsSingle();
 
     }
 

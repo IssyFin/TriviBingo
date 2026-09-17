@@ -4,15 +4,15 @@ using Zenject;
 
 public class QuizBoardController : IInitializable, IDisposable {
     private readonly BoardView _boardViewPrefab;
-    private readonly IEnvelopeFactory _envelopeFactory;
     private readonly DiContainer _diContainer;
-    private readonly IQuestionProvider _questionProvider;
     private readonly QuizInteractionHandler _interactionHandler;
-    private readonly IQuestionUIService _questionService;
+
+    private readonly IEnvelopeFactory _envelopeFactory;
+    private readonly IQuestionProvider _questionProvider;
+    private readonly IQuizService _questionService;
+
     private BoardView _activeBoardView;
     private QuizBoard _boardData;
-
-    private bool _isInteractionBlocked = false;
 
     public QuizBoardController(
         BoardView boardViewPrefab,
@@ -20,7 +20,7 @@ public class QuizBoardController : IInitializable, IDisposable {
         DiContainer diContainer,
         IQuestionProvider questionProvider,
         QuizInteractionHandler interactionHandler,
-        IQuestionUIService uiService) {
+        IQuizService uiService) {
         _boardViewPrefab = boardViewPrefab ?? throw new ArgumentNullException(nameof(boardViewPrefab));
         _envelopeFactory = envelopeFactory ?? throw new ArgumentNullException(nameof(envelopeFactory));
         _diContainer = diContainer;
@@ -45,6 +45,8 @@ public class QuizBoardController : IInitializable, IDisposable {
         foreach (var tileView in tiles) {
             AttachEnvelopeToTile(tileView);
         }
+
+        _interactionHandler.ToggleInteraction(true);
     }
 
     private void AttachEnvelopeToTile(TileView tileView) {
@@ -72,7 +74,7 @@ public class QuizBoardController : IInitializable, IDisposable {
         _interactionHandler.OnTileSelected -= HandleTileSelected;
 
         if (_questionService != null) {
-            _questionService.onAnswerCompleted += OnQuestionSessionCompleted;
+            _questionService.onAnswerReceived += OnQuestionSessionCompleted;
         }
     }
 
@@ -81,32 +83,33 @@ public class QuizBoardController : IInitializable, IDisposable {
         _interactionHandler.OnTileSelected += HandleTileSelected;
 
         if (_questionService != null) {
-            _questionService.onAnswerCompleted += OnQuestionSessionCompleted;
+            _questionService.onAnswerReceived += OnQuestionSessionCompleted;
         }
     }
 
     private void HandleTileSelected(int row, int col) {
-        if (_isInteractionBlocked || _boardData == null) return;
-
         var tile = _boardData.Grid.GetTile(row, col);
         var tileData = _boardData.GetData(tile);
         if (tileData?.Question == null) return;
 
-        //_isInteractionBlocked = true;
-        _questionService.OpenQuestionWindow(tileData.Question);
+        _interactionHandler.ToggleInteraction(false);
+        _questionService.BeginQuestion(tileData.Question);
     }
 
     private void OnQuestionSessionCompleted(RespondStatus respondStatus) {
+        Debug.Log($"Answer Received {respondStatus.IsCorrect}");
         if (respondStatus.IsCorrect) {
             // + points
         } else {
             // - points
         }
 
+
         //Remove envelope
 
+
         // Снимаем блокировку
-        _isInteractionBlocked = false;
+        _interactionHandler.ToggleInteraction(true);
     }
 }
 
@@ -117,6 +120,9 @@ public class QuizInteractionHandler : IInitializable, IDisposable {
     // Событие передает только логические координаты
     public event Action<int, int> OnTileSelected;
 
+    private IInteractable lastSelected;
+    private bool _isInteractionBlocked = false;
+
     public QuizInteractionHandler([InjectOptional] IInteractionService interactionService) {
         _interactionService = interactionService;
     }
@@ -124,22 +130,38 @@ public class QuizInteractionHandler : IInitializable, IDisposable {
     public void Initialize() {
         if (_interactionService != null) {
             _interactionService.Selected += HandleSelection;
+            _interactionService.HoverChanged += HandleHover;
         }
     }
 
     public void Dispose() {
         if (_interactionService != null) {
             _interactionService.Selected -= HandleSelection;
+            _interactionService.HoverChanged -= HandleHover;
+        }
+    }
+
+    public void ToggleInteraction(bool isEnabled) {
+        _isInteractionBlocked = isEnabled;
+
+        if (!_isInteractionBlocked && lastSelected != null) {
+            lastSelected.OnSelect(false);
+            lastSelected.OnHoverExit();
+            lastSelected = null;
         }
     }
 
     private void HandleSelection(GameObject clickedObject) {
-        IInteractable interactable = clickedObject.GetComponentInParent<IInteractable>();
+        if (!_isInteractionBlocked) return;
+
+        lastSelected?.OnSelect(false);
+
+        lastSelected = clickedObject.GetComponentInParent<IInteractable>();
 
         TileView clickedTile = null;
 
         // Определяем, к какому тайлу относится клик
-        switch (interactable) {
+        switch (lastSelected) {
             case QuestionEnvelopeView envelopeView:
                 Debug.Log($"Envelope : {envelopeView}");
                 // Если кликнули по открытке, получаем тайл, на котором она лежит
@@ -151,8 +173,23 @@ public class QuizInteractionHandler : IInitializable, IDisposable {
                 break;
         }
 
+        lastSelected.OnSelect(true);
+
         if (clickedTile != null) {
             OnTileSelected?.Invoke(clickedTile.Row, clickedTile.Col);
+        }
+    }
+
+    private void HandleHover(GameObject currentObject, bool isHovered) {
+        if (!_isInteractionBlocked) return;
+
+        IInteractable interactable = currentObject.GetComponentInParent<IInteractable>();
+        if (interactable == null) return;
+
+        if (isHovered) {
+            interactable.OnHoverEnter();
+        } else {
+            interactable.OnHoverExit();
         }
     }
 }
@@ -167,17 +204,38 @@ public struct RespondStatus {
         IsCorrect = isCorrect;
     }
 }
-public interface IQuestionUIService {
-    public event Action<RespondStatus> onAnswerCompleted;
+public interface IQuizService {
+    public event Action<RespondStatus> onAnswerReceived;
     // Вызываем окно, передаем данные вопроса и коллбек, который сработает при закрытии/ответе
-    void OpenQuestionWindow(QuestionData question);
+    void BeginQuestion(QuestionData question);
 }
 
-public class QuestionUIService : IQuestionUIService {
-    public event Action<RespondStatus> onAnswerCompleted;
+public class QuizService : IQuizService {
+    public event Action<RespondStatus> onAnswerReceived;
 
-    public void OpenQuestionWindow(QuestionData question) {
+    [Inject] private IWindowService uIService;
+
+    private QuestionWindow currentWindow;
+
+    public void BeginQuestion(QuestionData question) {
         Debug.Log($"Question : {question.Text}");
+
+        currentWindow = uIService.OpenWindow<QuestionWindow>();
+        currentWindow.OnAnswerReceived += HandleAnswerReceived;
+        currentWindow.SetQuestion(question);
+    }
+
+    private void HandleAnswerReceived(Answer answer) {
+        // Здесь определяете статус: правильный/неправильный ответ
+        RespondStatus status = new RespondStatus(answer.IsCorrect);
+
+        onAnswerReceived?.Invoke(status);
+
+        Cursor.visible = true;
+        if (currentWindow != null) {
+            currentWindow.OnAnswerReceived -= HandleAnswerReceived;
+            uIService.Hide<QuestionWindow>();
+            currentWindow = null;
+        }
     }
 }
-
