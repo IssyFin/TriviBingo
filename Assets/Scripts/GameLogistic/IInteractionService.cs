@@ -7,7 +7,7 @@ public interface IInteractionService {
 }
 
 public interface IInteractable {
-    void OnSelect();
+    void OnSelect(bool isSelected);
     void OnHoverEnter();
     void OnHoverExit();
 }
