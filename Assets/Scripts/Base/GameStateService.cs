@@ -24,11 +24,11 @@ public class GameStateService : IGameStateService {
     }
 
     public bool CheckWinCondition() {
-        return _board.Grid.AllLines().Any(line => _board.IsLineComplete(line));
+        return _board.AllLines.Any(line => _board.IsLineComplete(line));
     }
 
     public bool CheckLossCondition() {
-        return _board.Grid.AllLines().All(line => _board.IsLineBlocked(line));
+        return _board.AllLines.All(line => _board.IsLineBlocked(line));
     }
 
     public bool IsTileAvailable(Tile tile) {

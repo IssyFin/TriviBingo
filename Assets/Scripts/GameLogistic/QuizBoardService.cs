@@ -1,196 +1,197 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Zenject;
 
-public class QuizBoardController : IInitializable, IDisposable {
-    private readonly BoardView _boardViewPrefab;
-    private readonly DiContainer _diContainer;
-    private readonly QuizInteractionHandler _interactionHandler;
-
-    private readonly IEnvelopeFactory _envelopeFactory;
+public class QuizGameController : IInitializable, IDisposable {
+    private readonly QuizBoard _board;
+    private readonly BoardPresenter _presenter;
+    private readonly QuizInputRouter _input;
+    private readonly IQuizService _quiz;
     private readonly IQuestionProvider _questionProvider;
-    private readonly IQuizService _questionService;
 
-    private BoardView _activeBoardView;
-    private QuizBoard _boardData;
+    public event Action<GameState> GameFinished;
 
-    public QuizBoardController(
-        BoardView boardViewPrefab,
-        IEnvelopeFactory envelopeFactory,
-        DiContainer diContainer,
-        IQuestionProvider questionProvider,
-        QuizInteractionHandler interactionHandler,
-        IQuizService uiService) {
-        _boardViewPrefab = boardViewPrefab ?? throw new ArgumentNullException(nameof(boardViewPrefab));
-        _envelopeFactory = envelopeFactory ?? throw new ArgumentNullException(nameof(envelopeFactory));
-        _diContainer = diContainer;
+    public QuizGameController(
+        BoardPresenter presenter,
+        QuizInputRouter input,
+        IQuizService quiz,
+        IQuestionProvider questionProvider) {
+        _board = new();
+        _presenter = presenter;
+        _input = input;
+        _quiz = quiz;
         _questionProvider = questionProvider;
-        _interactionHandler = interactionHandler;
-        _questionService = uiService;
-
-        _boardData = new QuizBoard();
-    }
-
-    public void ShowBoard(int size) {
-        ClearBoard();
-        
-        _boardData.Generate(size, _questionProvider);
-
-        // Исправлено: сохраняем в поле класса, а не в локальную переменную
-        _activeBoardView = _diContainer.InstantiatePrefabForComponent<BoardView>(_boardViewPrefab);
-        _activeBoardView.transform.SetParent(null);
-
-        var tiles = _activeBoardView.GenerateBoard(_boardData.Grid.Size);
-
-        foreach (var tileView in tiles) {
-            AttachEnvelopeToTile(tileView);
-        }
-
-        _interactionHandler.ToggleInteraction(true);
-    }
-
-    private void AttachEnvelopeToTile(TileView tileView) {
-        var tile = _boardData.Grid.GetTile(tileView.Row, tileView.Col);
-        var data = _boardData.GetData(tile);
-
-        if (data.Question == null) return;
-
-        QuestionEnvelopeView envelope = _envelopeFactory.CreateEnvelope(data.Question);
-        envelope.gameObject.name = $"Envelope for {tileView.name}";
-        tileView.AttachEnvelope(envelope);
-    }
-
-    public void ClearBoard() {
-        if (_activeBoardView != null) {
-            _activeBoardView.Clear();
-            UnityEngine.Object.Destroy(_activeBoardView.gameObject);
-            _activeBoardView = null;
-        }
-    }
-
-    public void Dispose() {
-        ClearBoard();
-        if (_interactionHandler != null)
-        _interactionHandler.OnTileSelected -= HandleTileSelected;
-
-        if (_questionService != null) {
-            _questionService.onAnswerReceived += OnQuestionSessionCompleted;
-        }
     }
 
     public void Initialize() {
-        if (_interactionHandler != null)
-        _interactionHandler.OnTileSelected += HandleTileSelected;
-
-        if (_questionService != null) {
-            _questionService.onAnswerReceived += OnQuestionSessionCompleted;
-        }
+        _input.TilePicked += OnTilePicked;
+        _quiz.onAnswerReceived += OnAnswerReceived;
+        _board.GameFinished += OnGameFinished;
     }
 
-    private void HandleTileSelected(int row, int col) {
-        var tile = _boardData.Grid.GetTile(row, col);
-        var tileData = _boardData.GetData(tile);
-        if (tileData?.Question == null) return;
-
-        _interactionHandler.ToggleInteraction(false);
-        _questionService.BeginQuestion(tileData.Question);
+    public void Dispose() {
+        _input.TilePicked -= OnTilePicked;
+        _quiz.onAnswerReceived -= OnAnswerReceived;
+        _board.GameFinished -= OnGameFinished;
     }
 
-    private void OnQuestionSessionCompleted(RespondStatus respondStatus) {
-        Debug.Log($"Answer Received {respondStatus.IsCorrect}");
-        if (respondStatus.IsCorrect) {
-            // + points
-        } else {
-            // - points
-        }
+    public void StartGame(int size) {
+        _board.Generate(size, _questionProvider);
+        _presenter.Show(_board);
+        _input.SetEnabled(true);
+    }
 
+    private Tile _pendingTile;
 
-        //Remove envelope
+    private void OnTilePicked(Tile tile) {
+        if (!_board.CanAnswer(tile)) return;
 
+        _pendingTile = tile;
+        _input.SetEnabled(false);
+        _quiz.BeginQuestion(_board.GetData(tile).Question);
+    }
 
-        // Снимаем блокировку
-        _interactionHandler.ToggleInteraction(true);
+    private void OnAnswerReceived(RespondStatus status) {
+        if (_pendingTile == null) return;
+
+        var tile = _pendingTile;
+        _pendingTile = null;
+
+        // Меняем модель. Презентер сам уберёт открытку и покрасит тайл.
+        _board.ResolveTile(tile, status.IsCorrect);
+
+        // Если игра закончилась, ввод остаётся заблокированным навсегда.
+        if (_board.State == GameState.Playing)
+            _input.SetEnabled(true);
+    }
+
+    private void OnGameFinished(GameState state) {
+        _input.SetEnabled(false);
+        Debug.Log(state == GameState.Won ? "Победа!" : "Поражение");
+        GameFinished?.Invoke(state);
     }
 }
 
+public class BoardPresenter : IDisposable {
+    private readonly BoardView _boardViewPrefab;
+    private readonly DiContainer _container;
+    private readonly IEnvelopeFactory _envelopeFactory;
 
-public class QuizInteractionHandler : IInitializable, IDisposable {
-    private readonly IInteractionService _interactionService;
+    private BoardView _view;
+    private QuizBoard _board;
+    private readonly Dictionary<Tile, TileView> _tileViews = new();
 
-    // Событие передает только логические координаты
-    public event Action<int, int> OnTileSelected;
+    public BoardPresenter(BoardView boardViewPrefab, DiContainer container, IEnvelopeFactory envelopeFactory) {
+        _boardViewPrefab = boardViewPrefab ?? throw new ArgumentNullException(nameof(boardViewPrefab));
+        _container = container;
+        _envelopeFactory = envelopeFactory ?? throw new ArgumentNullException(nameof(envelopeFactory));
+    }
 
-    private IInteractable lastSelected;
-    private bool _isInteractionBlocked = false;
+    public void Show(QuizBoard board) {
+        Clear();
+        _board = board;
+        _board.TileResolved += OnTileResolved;
 
-    public QuizInteractionHandler([InjectOptional] IInteractionService interactionService) {
-        _interactionService = interactionService;
+        _view = _container.InstantiatePrefabForComponent<BoardView>(_boardViewPrefab);
+        _view.transform.SetParent(null);
+
+        foreach (var tileView in _view.GenerateBoard(board.Grid)) {
+            _tileViews[tileView.Tile] = tileView;
+
+            var data = board.GetData(tileView.Tile);
+            var envelope = _envelopeFactory.CreateEnvelope(data.Question);
+            envelope.name = $"Envelope for {tileView.name}";
+            tileView.AttachEnvelope(envelope);
+        }
+    }
+
+    private void OnTileResolved(TileData data) {
+        if (!_tileViews.TryGetValue(data.Tile, out var tileView)) return;
+        tileView.RemoveEnvelope();
+        tileView.ShowState(data.State);
+    }
+
+    public void Clear() {
+        if (_board != null) _board.TileResolved -= OnTileResolved;
+        _board = null;
+        _tileViews.Clear();
+
+        if (_view != null) {
+            _view.Clear();
+            UnityEngine.Object.Destroy(_view.gameObject);
+            _view = null;
+        }
+    }
+
+    public void Dispose() => Clear();
+}
+
+
+public class QuizInputRouter : IInitializable, IDisposable {
+    private readonly IInteractionService _interaction;
+
+    public event Action<Tile> TilePicked;
+
+    private IInteractable _selected;
+    private bool _enabled = true;
+
+    public QuizInputRouter([InjectOptional] IInteractionService interaction) {
+        _interaction = interaction;
     }
 
     public void Initialize() {
-        if (_interactionService != null) {
-            _interactionService.Selected += HandleSelection;
-            _interactionService.HoverChanged += HandleHover;
-        }
+        if (_interaction == null) return;
+        _interaction.Selected += OnSelected;
+        _interaction.HoverChanged += OnHover;
     }
 
     public void Dispose() {
-        if (_interactionService != null) {
-            _interactionService.Selected -= HandleSelection;
-            _interactionService.HoverChanged -= HandleHover;
-        }
+        if (_interaction == null) return;
+        _interaction.Selected -= OnSelected;
+        _interaction.HoverChanged -= OnHover;
     }
 
-    public void ToggleInteraction(bool isEnabled) {
-        _isInteractionBlocked = isEnabled;
-
-        if (!_isInteractionBlocked && lastSelected != null) {
-            lastSelected.OnSelect(false);
-            lastSelected.OnHoverExit();
-            lastSelected = null;
-        }
+    public void SetEnabled(bool enabled) {
+        _enabled = enabled;
+        if (!enabled) ClearSelection();
     }
 
-    private void HandleSelection(GameObject clickedObject) {
-        if (!_isInteractionBlocked) return;
+    private void OnSelected(GameObject go) {
+        if (!_enabled) return;
+        if (!go.TryGetComponentInParent(out ITileTarget target)) return;
 
-        lastSelected?.OnSelect(false);
-
-        lastSelected = clickedObject.GetComponentInParent<IInteractable>();
-
-        TileView clickedTile = null;
-
-        // Определяем, к какому тайлу относится клик
-        switch (lastSelected) {
-            case QuestionEnvelopeView envelopeView:
-                Debug.Log($"Envelope : {envelopeView}");
-                // Если кликнули по открытке, получаем тайл, на котором она лежит
-                clickedTile = envelopeView.GetComponentInParent<TileView>();
-                break;
-            case TileView tileView:
-                Debug.Log($"Tile : {tileView}");
-                clickedTile = tileView;
-                break;
+        ClearSelection();
+        if (target is IInteractable interactable) {
+            _selected = interactable;
+            interactable.OnSelect(true);
         }
-
-        lastSelected.OnSelect(true);
-
-        if (clickedTile != null) {
-            OnTileSelected?.Invoke(clickedTile.Row, clickedTile.Col);
-        }
+        TilePicked?.Invoke(target.Tile);
     }
 
-    private void HandleHover(GameObject currentObject, bool isHovered) {
-        if (!_isInteractionBlocked) return;
-
-        IInteractable interactable = currentObject.GetComponentInParent<IInteractable>();
+    private void OnHover(GameObject go, bool isHovered) {
+        if (!_enabled) return;
+        var interactable = go.GetComponentInParent<IInteractable>();
         if (interactable == null) return;
 
-        if (isHovered) {
-            interactable.OnHoverEnter();
-        } else {
-            interactable.OnHoverExit();
-        }
+        if (isHovered) interactable.OnHoverEnter();
+        else interactable.OnHoverExit();
+    }
+
+    private void ClearSelection() {
+        if (_selected == null) return;
+        // После удаления открытки объект может быть уже уничтожен (Unity-null)
+        if (_selected is UnityEngine.Object o && o == null) { _selected = null; return; }
+        _selected.OnSelect(false);
+        _selected.OnHoverExit();
+        _selected = null;
+    }
+}
+
+public static class GameObjectExtensions {
+    public static bool TryGetComponentInParent<T>(this GameObject go, out T component) where T : class {
+        component = go.GetComponentInParent<T>();
+        return component != null;
     }
 }
 
@@ -231,7 +232,6 @@ public class QuizService : IQuizService {
 
         onAnswerReceived?.Invoke(status);
 
-        Cursor.visible = true;
         if (currentWindow != null) {
             currentWindow.OnAnswerReceived -= HandleAnswerReceived;
             uIService.Hide<QuestionWindow>();

@@ -12,17 +12,33 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 42e078cc56e3b81448c1eb1d48874575, type: 3}
   m_Name: questions
   m_EditorClassIdentifier: Assembly-CSharp::QuestionData
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
   Questions:
   - Id: aw
-    Text: faff
+    Text: 2+2=?
+    Category: 4
     Answers:
-    - 1
-    - 1
-    - 3
-    CorrectAnswerIndex: 0
-    CorrectAnswers: []
+    - Text: yes
+      IsCorrect: 0
+    - Text: no
+      IsCorrect: 0
+    - Text: 4
+      IsCorrect: 0
   - Id: a
-    Text: af
-    Answers: []
-    CorrectAnswerIndex: 0
-    CorrectAnswers: []
+    Text: Who is your favorite character?
+    Category: 1
+    Answers:
+    - Text: Pomni
+      IsCorrect: 0
+    - Text: Pomni
+      IsCorrect: 0
+    - Text: Pomni
+      IsCorrect: 0

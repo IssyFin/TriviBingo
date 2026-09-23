@@ -19,8 +19,10 @@ public class GameInstaller : MonoInstaller {
         BindDataLoading();
 
         Container.Bind<GameManager>().FromNewComponentOnNewGameObject().AsSingle();
-        Container.BindInterfacesAndSelfTo<QuizInteractionHandler>().AsSingle();
-        Container.BindInterfacesAndSelfTo<QuizBoardController>().AsSingle().WithArguments(boardView);
+        Container.BindInterfacesAndSelfTo<QuizInputRouter>().AsSingle();
+
+        Container.BindInterfacesAndSelfTo<BoardPresenter>().AsSingle().WithArguments(boardView);
+        Container.BindInterfacesAndSelfTo<QuizGameController>().AsSingle();
 
         Container.Bind<IEnvelopeFactory>().To<EnvelopeFactory>().AsSingle().WithArguments(envelopeViewPrefab);
         Container.Bind<ICategoryColorProvider>().To<CategoryColorProvider>().AsSingle().WithArguments(categoryColorConfig);

@@ -7,7 +7,7 @@ public class GameManager : MonoBehaviour
 {
     [Inject] DataLoaderRegistry dataLoaderRegistry;
     
-    [Inject] QuizBoardController controller;
+    [Inject] QuizGameController controller;
 
     public void Start() {
         Debug.Log($"GameManager initialized. And have {dataLoaderRegistry}");
@@ -19,6 +19,6 @@ public class GameManager : MonoBehaviour
     private async UniTask StartGame() {
         await dataLoaderRegistry.LoadAllAsync();
 
-        controller.ShowBoard(5);
+        controller.StartGame(5);
     }
 }
