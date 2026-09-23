@@ -1,68 +1,47 @@
 using DG.Tweening;
-using System;
 using UnityEngine;
 
-public class QuestionEnvelopeView : MonoBehaviour, IInteractable {
-    [SerializeField] MeshRenderer meshRenderer;
-
-    public Action<QuestionEnvelopeView> Clicked { get; internal set; }
-
-    private Material _material;
-
+public class QuestionEnvelopeView : MonoBehaviour, ITileTarget, IInteractable {
+    [SerializeField] private MeshRenderer meshRenderer;
     [Header("Animation")]
-    private Tween _scaleTween;
     [SerializeField] private float hoverScale = 1.08f;
-    private Vector3 _baseScale;
     [SerializeField] private float animationDuration = 0.15f;
     [SerializeField] private Ease scaleEase = Ease.OutBack;
 
-    private bool _isSelected = false;
+    public Tile Tile { get; private set; }
+
+    private Vector3 _baseScale;
+    private bool _isSelected;
 
     private void Awake() {
-        if (meshRenderer == null) {
-            meshRenderer = GetComponentInChildren<MeshRenderer>();
-        }
-        _material = meshRenderer.material;
+        if (meshRenderer == null) meshRenderer = GetComponentInChildren<MeshRenderer>();
         _baseScale = transform.localScale;
     }
-    public void SetMainColor(Color mainColor) {
-        meshRenderer.material.color = mainColor;
-    }
 
-    private void OnMouseDown() => Clicked?.Invoke(this);
+    public void Bind(Tile tile) => Tile = tile;
+
+    public void SetMainColor(Color color) => meshRenderer.material.color = color;
 
     public void OnSelect(bool isSelected) {
-        Debug.Log("Envelope Selected");
         _isSelected = isSelected;
-
-        transform.DOKill();
-        transform.localScale = _baseScale * (hoverScale * 0.9f);
-        transform.DOScale(_baseScale * hoverScale, animationDuration)
-                 .SetEase(Ease.OutBack);
-
-        Debug.Log("Envelope Selected");
-    }
-
-    public void OnHoverEnter() {
-        Debug.Log("Envelope Hovered");
-        if (!_isSelected) {
+        if (isSelected) {
+            transform.DOKill();
+            transform.localScale = _baseScale * (hoverScale * 0.9f);
             AnimateScale(hoverScale);
-        }
-    }
-
-    public void OnHoverExit() {
-        Debug.Log("Envelope Unhovered");
-
-        if (!_isSelected) {
+        } else {
             AnimateScale(1f);
         }
     }
 
+    public void OnHoverEnter() { if (!_isSelected) AnimateScale(hoverScale); }
+    public void OnHoverExit() { if (!_isSelected) AnimateScale(1f); }
+
     private void AnimateScale(float multiplier) {
-        _scaleTween?.Kill();
-        _scaleTween = transform
-            .DOScale(_baseScale * multiplier, animationDuration)
-            .SetEase(scaleEase)
-            .SetUpdate(UpdateType.Normal, isIndependentUpdate: true);
+        transform.DOKill();
+        transform.DOScale(_baseScale * multiplier, animationDuration)
+                 .SetEase(scaleEase)
+                 .SetUpdate(UpdateType.Normal, true);
     }
+
+    private void OnDestroy() => transform.DOKill();
 }

@@ -189,4 +189,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f04da89ff1cb6a45bbbdd5e20fe3168, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TileView
-  questionEnvelopeContainer: {fileID: 1016356068230789336}
+  envelopeContainer: {fileID: 1016356068230789336}
+  meshRenderer: {fileID: 8926847455301096366}
+  idleColor: {r: 1, g: 1, b: 1, a: 1}
+  rightColor: {r: 0.4, g: 0.85, b: 0.4, a: 1}
+  wrongColor: {r: 0.9, g: 0.35, b: 0.35, a: 1}

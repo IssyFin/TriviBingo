@@ -18,29 +18,24 @@ public class BoardView : MonoBehaviour {
     private readonly List<Transform> _rowParents = new();
     public IReadOnlyList<TileView> Tiles => _tiles;
 
-    public IReadOnlyList<TileView> GenerateBoard(int size) {
+    public IReadOnlyList<TileView> GenerateBoard(Grid grid) {
         Clear();
-
         float stepX = config.tileWidth + config.tileSpacing;
         float stepZ = config.tileHeight + config.tileSpacing;
 
-        for (int row = 0; row < size; row++) {
-            // родитель ряда смещён по Z на row * stepZ
+        for (int row = 0; row < grid.Size; row++) {
             var rowParent = new GameObject($"Row [{row}]").transform;
-            rowParent.SetParent(transform, worldPositionStays: false);
+            rowParent.SetParent(transform, false);
             rowParent.localPosition = new Vector3(0f, 0f, row * stepZ);
-            _rowParents.Add(rowParent);
 
-            for (int col = 0; col < size; col++) {
-                // локальная позиция внутри ряда: только по X
-                Vector3 localPos = new Vector3(col * stepX, 0f, 0f);
-
-                var tileView = Instantiate(tileViewPrefab, rowParent);
-                tileView.transform.localPosition = localPos;
-                tileView.transform.localRotation = Quaternion.identity;
-                tileView.gameObject.name = $"Tile [{row},{col}]";
-                tileView.Initialize(row, col);
-                _tiles.Add(tileView);
+            for (int col = 0; col < grid.Size; col++) {
+                var tile = grid.GetTile(row, col);
+                var view = Instantiate(tileViewPrefab, rowParent);
+                view.transform.localPosition = new Vector3(col * stepX, 0f, 0f);
+                view.transform.localRotation = Quaternion.identity;
+                view.name = $"Tile [{row},{col}]";
+                view.Initialize(tile);
+                _tiles.Add(view);
             }
         }
         return _tiles;
