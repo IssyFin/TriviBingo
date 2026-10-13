@@ -1,7 +1,5 @@
 using UnityEngine;
 
-using UnityEngine;
-
 public class StaticCameraDetector : BaseObjectDetector {
     [Header("Static Detector Settings")]
     [SerializeField] private float raycastRadius = 0.2f;
