@@ -74,17 +74,15 @@ public class QuizGameController : IInitializable, IDisposable {
 }
 
 public class BoardPresenter : IDisposable {
-    private readonly BoardView _boardViewPrefab;
-    private readonly DiContainer _container;
+    private readonly IBoardViewFactory _BoardViewFactory;
     private readonly IEnvelopeFactory _envelopeFactory;
 
     private BoardView _view;
     private QuizBoard _board;
     private readonly Dictionary<Tile, TileView> _tileViews = new();
 
-    public BoardPresenter(BoardView boardViewPrefab, DiContainer container, IEnvelopeFactory envelopeFactory) {
-        _boardViewPrefab = boardViewPrefab ?? throw new ArgumentNullException(nameof(boardViewPrefab));
-        _container = container;
+    public BoardPresenter(IBoardViewFactory boardFactory, DiContainer container, IEnvelopeFactory envelopeFactory) {
+        _BoardViewFactory = boardFactory ?? throw new ArgumentNullException(nameof(boardFactory));
         _envelopeFactory = envelopeFactory ?? throw new ArgumentNullException(nameof(envelopeFactory));
     }
 
@@ -93,7 +91,7 @@ public class BoardPresenter : IDisposable {
         _board = board;
         _board.TileResolved += OnTileResolved;
 
-        _view = _container.InstantiatePrefabForComponent<BoardView>(_boardViewPrefab);
+        _view = _BoardViewFactory.Create();
         _view.transform.SetParent(null);
 
         foreach (var tileView in _view.GenerateBoard(board.Grid)) {
@@ -180,8 +178,7 @@ public class QuizInputRouter : IInitializable, IDisposable {
 
     private void ClearSelection() {
         if (_selected == null) return;
-        // После удаления открытки объект может быть уже уничтожен (Unity-null)
-        if (_selected is UnityEngine.Object o && o == null) { _selected = null; return; }
+
         _selected.OnSelect(false);
         _selected.OnHoverExit();
         _selected = null;

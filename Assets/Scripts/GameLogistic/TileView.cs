@@ -40,3 +40,4 @@ public class TileView : MonoBehaviour, ITileTarget, IInteractable {
     public void OnHoverEnter() => Envelope?.OnHoverEnter();
     public void OnHoverExit() => Envelope?.OnHoverExit();
 }
+
