@@ -21,7 +21,7 @@ public enum GameState { Playing, Won, Lost }
 public class TileData {
     public Tile Tile { get; }
     public QuestionData Question { get; }
-    public TileState State { get; internal set; } = TileState.Idle;
+    public TileState State { get; set; } = TileState.Idle;
 
     public TileData(QuestionData question, Tile tile) {
         Question = question ?? throw new ArgumentNullException(nameof(question));

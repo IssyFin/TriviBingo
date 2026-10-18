@@ -31,14 +31,14 @@ MonoBehaviour:
     - Text: no
       IsCorrect: 0
     - Text: 4
-      IsCorrect: 0
+      IsCorrect: 1
   - Id: a
     Text: Who is your favorite character?
     Category: 1
     Answers:
     - Text: Pomni
-      IsCorrect: 0
+      IsCorrect: 1
     - Text: Pomni
-      IsCorrect: 0
+      IsCorrect: 1
     - Text: Pomni
-      IsCorrect: 0
+      IsCorrect: 1
