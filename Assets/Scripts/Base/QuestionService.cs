@@ -1,9 +1,11 @@
+#nullable enable
 using BingoTrivia.Validation;
 using Cysharp.Threading.Tasks;
 using ModestTree;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 
 public interface IQuestionService {
     QuestionData GetQuestionForTile(Tile tile);
@@ -106,7 +108,7 @@ public sealed class QuestionProvider : IQuestionProvider {
     // (Опционально — см. раздел про инвалидацию ниже.)
     private int _cachedRepositoryCount = -1;
 
-    public QuestionProvider(IQuestionRepository repository, Random random = null) {
+    public QuestionProvider(IQuestionRepository repository, Random? random = null) {
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _random = random ?? new Random();
     }
